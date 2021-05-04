@@ -1,7 +1,7 @@
 // BUILD YOUR SERVER HERE
-
 const express = require('express');
-const data = require('./api/users/model');
+const { json } = require('express');
+const Data = require('./users/model');
 
 //INSTANCE OF EXPRESS APP
 const server = express();
@@ -10,115 +10,105 @@ const server = express();
 server.use(express.json());
 
 //ENDPOINTS FOR MVP
-
-//(Post):
-server.post('/api/users', (req, res) => {
-  data
-    .insert({
-      name: req.body.name,
-      bio: req.body.bio,
+//GET ALL USERS
+server.get('/api/users', (req, res) => {
+  Data.find()
+    .then((user) => {
+      res.status(200).json(user);
     })
-    .then((newUser) => {
-      if (!req.body.name || !req.body.bio) {
-        return res.status(400).json({
-          message: 'Please provide name and bio for the user',
-        });
+    .catch((error) => {
+      res.status(500).json({
+        message: 'The users information could not be retrieved',
+      });
+    });
+});
+
+//GET USER BY ID
+server.get('/api/users/:id', (req, res) => {
+  const id = req.params.id;
+  Data.findById(id)
+    .then((user) => {
+      if (user) {
+        res.status(200).json(user);
       } else {
-        res.status(201).json(newUser);
+        res.status(404).json({
+          message: 'The user with the specified ID does not exist',
+        });
       }
     })
     .catch((error) => {
-      console.log(error);
       res.status(500).json({
-        message: 'There was an error while saving the user to the database',
+        message: 'The user information could not be retrieved',
       });
     });
+});
 
-  //(Get):
-  server.get('/api/users', (req, res) => {
-    data
-      .find()
-      .then((users) => {
-        console.log(users);
-        res.json(users);
-      })
-      .catch((err) => {
-        res.status(500).json({
-          message: 'The users information could not be retrieved',
+//DELETE
+server.delete('/api/users/:id', (req, res) => {
+  const id = req.params.id;
+  Data.remove(id)
+    .then((user) => {
+      if (user) {
+        res.status(200).json(user);
+      } else {
+        res.status(404).json({
+          message: 'The user with the specified ID does not exist',
         });
+      }
+    })
+    .catch((error) => {
+      res.status(500).json({
+        message: 'The user could not be removed',
       });
-  });
+    });
+});
 
-  //(Get):
-  server.get('/api/users/:id', (req, res) => {
-    data
-      .findById(req.params.id)
-      .then((users) => {
-        if (users) {
-          res.json(users);
-        } else {
-          res.status(404).json({
-            message: 'The user with the specified ID does not exist',
-          });
-        }
-      })
-      .catch((error) => {
-        console.log(error);
-        res.status(500).json({
-          message: 'The user information could not be retrieved',
-        });
-      });
-  });
-
-  //(Delete):
-  server.remove('/api/users/:id', (req, res) => {
-    data
-      .delete(req.params.id)
+//INSERT
+server.post('/api/users', (req, res) => {
+  const newUser = req.body;
+  if (!newUser.name || !newUser.bio) {
+    res.status(400).json({
+      message: 'Please provide name and bio for the user',
+    });
+  } else {
+    Data.insert(newUser)
       .then((user) => {
-        if (user) {
-          res.json(user);
-        } else {
-          res.status(404).json({
-            message: 'The user with the specified ID does not exist',
-          });
-        }
+        res.status(201).json(user);
       })
       .catch((error) => {
-        console.log(error);
         res.status(500).json({
-          message: 'The user could not be removed',
+          message: 'There was an error while saving the user to the database',
         });
       });
-  });
+  }
+});
 
-  //(Put):
-  server.put('/api/users/:id', (req, res) => {
-    if (!req.body.name || req.body.bio) {
-      return res.status(400).json({
-        message: 'Please provide name and bio for the user',
-      });
-    }
-    data
-      .update(req.params.id, {
-        name: req.body.name,
-        bio: req.body.bio,
-      })
-      .then((updatedUser) => {
-        console.log(updatedUser);
-        if (updatedUser) {
-          res.status(200).json(updatedUser);
-        } else {
-          res.status(404).json({
-            message: 'The user with the specified ID does not exist',
-          });
-        }
+// UPDATE
+server.put('/api/users/:id', (req, res) => {
+  const id = req.params.id;
+  const updateUser = req.body;
+  if (!updateUser.name || !updateUser.bio) {
+    res.status(400).json({
+      message: 'Please provide name and bio for the user',
+    });
+  } else {
+    Data.update(id, updateUser)
+      .then((user) => {
+        res.status(200).json(user);
       })
       .catch((error) => {
-        console.log(error);
         res.status(500).json({
-          message: 'The user information could not be modified',
+          message: 'Please provide name and bio for the user',
         });
       });
+  }
+});
+
+// NOTHING PAST HERE
+server.use('/', (req, res) => {
+  res.status(404).json({
+    message: 'not found',
   });
 });
+
 module.exports = server;
